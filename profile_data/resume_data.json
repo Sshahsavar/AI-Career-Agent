@@ -1,0 +1,7 @@
+{
+    "header": "# [YOUR NAME]\n[CITY, STATE] | [PHONE] | [EMAIL] | [LINKEDIN] | [GITHUB]",
+    "summary": "Quantitative Analyst and Data Scientist with extensive experience in time-series econometrics, predictive machine learning, and data visualization. Proven track record in designing analytical models and turning complex datasets into actionable strategic insights.",
+    "education": "**University Name | Degree (2025–2026)**\nSelected Coursework: Advanced Econometrics, Quantitative Finance, Machine Learning, Statistical Inference.",
+    "experience": "**Company Name | Job Title (2020–Present)**\n* Designed statistical models and predictive data pipelines to support strategic planning.\n* Cleaned and analyzed large unstructured datasets using Python, Pandas, and SQL.\n* Built automated reporting dashboards to communicate insights to executive stakeholders.",
+    "skills": "* **Languages & Databases:** Python, R, SQL, SAS\n* **Machine Learning & Modeling:** Time Series, Random Forest, XGBoost, Regression Analysis\n* **Tools & Frameworks:** Git, Streamlit, Pandas, NumPy, Scikit-Learn"
+}
