@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Quantitative Risk & Portfolio Engine",
+    "url": "github.com/your-username/risk-engine",
+    "description": "A python-based quantitative framework for evaluating asymmetric tail risks and portfolio allocations.",
+    "tech_stack": ["Python", "Pandas", "NumPy", "SciPy"],
+    "bullets": [
+      "Engineered quantitative risk models to analyze market regimes and asset volatility.",
+      "Implemented automated backtesting scripts to benchmark allocations against historical baselines."
+    ]
+  },
+  {
+    "name": "Machine Learning Predictive Modeling Pipeline",
+    "url": "github.com/your-username/ml-pipeline",
+    "description": "End-to-end data processing and machine learning pipeline for customer and financial classification.",
+    "tech_stack": ["Python", "Scikit-Learn", "LightGBM", "SHAP"],
+    "bullets": [
+      "Developed high-accuracy predictive algorithms while enforcing model explainability using SHAP values.",
+      "Optimized hyperparameter tuning pipelines to enhance cross-validation scoring."
+    ]
+  }
+]
