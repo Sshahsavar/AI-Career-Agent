@@ -49,10 +49,32 @@ def initialize_system():
         with open("profile_data/resume_data.json", "w") as f:
             json.dump(default_resume, f, indent=4)
 
-    # 3. Initialize Soft Skills Markdown
-    if not os.path.exists("profile_data/soft_skills.md"):
-        with open("profile_data/soft_skills.md", "w") as f:
-            f.write("# Soft Skills & Cognitive Abilities\n\nI am creative because...")
+    # 3. Initialize Soft Skills JSON
+    if not os.path.exists("profile_data/soft_skills.json"):
+        default_soft_skills = [
+            {
+                "trait": "Adaptability Under Ambiguity",
+                "example": "Navigated severe operational and financial disruptions as an operations manager during the COVID 19 pandemic, rapidly adjusting workflows, inventory controls, and team priorities under intense pressure."
+            },
+            {
+                "trait": "Cross Disciplinary Collaboration",
+                "example": "Spearheaded public policy conferences and coordinated multi disciplinary social science research projects, aligning diverse stakeholders across academic, administrative, and policy domains."
+            },
+            {
+                "trait": "Analytical Rigor & Critical Skepticism",
+                "example": "Developed deep quantitative intuition through a Masters in Economics at York University, evaluating complex time series dynamics, Copula EGARCH models, and GARCH frameworks to isolate market regime changes."
+            },
+            {
+                "trait": "Strategic Agility",
+                "example": "Managed retail operations and cash flow at 5th Garden Coffee Shop during economic downturns, proactively recalibrating pricing models and cost structures to cushion inflationary impacts."
+            },
+            {
+                "trait": "Narrative Synthesis & Communication",
+                "example": "Produced and edited 20 full podcast episodes covering complex topics in human development and economic inequality, translating intricate research into accessible, engaging audio content for a broad audience."
+            }
+        ]
+        with open("profile_data/soft_skills.json", "w") as f:
+            json.dump(default_soft_skills, f, indent=4)
 
     # 4. Initialize Dynamic AI Prompts JSON
     if not os.path.exists("profile_data/prompts.json"):
@@ -139,6 +161,15 @@ def build_master_cv(resume_data):
 ## TECHNICAL SKILLS
 {resume_data.get('skills', '')}
 """
+
+def build_soft_skills_text(skills_list):
+    lines = ["# Soft Skills & Cognitive Abilities\n"]
+    for item in skills_list:
+        trait = item.get("trait", "").strip()
+        example = item.get("example", "").strip()
+        if trait or example:
+            lines.append(f"* **{trait}:** {example}")
+    return "\n\n".join(lines)
 
 # --- 1. DEFINING THE AI AGENT'S STRUCTURED OUTPUT ---
 class JobAnalysisAgentOutput(BaseModel):
@@ -532,7 +563,7 @@ if not user_api_key:
 
 st.title("💼 Tailored AI Career Agent")
 
-# Define Tabs (TAB 2 = "CV", TAB 3 = "Projects")
+# Define Tabs
 tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 Job Description & Agent", "📝 CV", "📂 Projects", "💡 Soft Skills", "⚙️ AI Prompts"])
 
 # --- TAB 2: CV ---
@@ -600,20 +631,46 @@ with tab3:
         st.cache_data.clear() 
         st.success("Projects JSON Updated Successfully!")
 
-# --- TAB 4: SOFT SKILLS ---
+# --- TAB 4: SOFT SKILLS (USER FRIENDLY EXPANDERS) ---
 with tab4:
     st.subheader("Edit Soft Skills & Cognitive Abilities")
-    st.write("Write your soft skills, cognitive abilities, and real-world examples in Markdown format.")
+    st.markdown("Add or edit your soft skills, cognitive traits, and real-world examples below. These will be dynamically woven into Paragraph 2 of your cover letter.")
     
-    with open("profile_data/soft_skills.md", "r") as f:
-        current_soft_skills = f.read()
-        
-    edited_soft_skills = st.text_area("Markdown Format", current_soft_skills, height=400)
-    if st.button("💾 Save Soft Skills"):
+    if "soft_skills_data" not in st.session_state:
+        if os.path.exists("profile_data/soft_skills.json"):
+            with open("profile_data/soft_skills.json", "r") as f:
+                st.session_state.soft_skills_data = json.load(f)
+        else:
+            st.session_state.soft_skills_data = []
+
+    def add_soft_skill():
+        st.session_state.soft_skills_data.append({
+            "trait": "New Cognitive Trait", 
+            "example": ""
+        })
+
+    def delete_soft_skill(idx):
+        st.session_state.soft_skills_data.pop(idx)
+
+    st.button("➕ Add New Soft Skill", on_click=add_soft_skill)
+    
+    for i, skill in enumerate(st.session_state.soft_skills_data):
+        with st.expander(f"{skill.get('trait', 'Untitled Skill')}", expanded=False):
+            skill['trait'] = st.text_input("Trait / Skill Title", skill.get('trait', ''), key=f"s_trait_{i}")
+            skill['example'] = st.text_area("Example / Real-world Experience", skill.get('example', ''), key=f"s_ex_{i}")
+            st.button("❌ Delete Soft Skill", key=f"s_del_{i}", on_click=delete_soft_skill, args=(i,))
+
+    st.divider()
+    if st.button("💾 Save All Soft Skills"):
+        with open("profile_data/soft_skills.json", "w") as f:
+            json.dump(st.session_state.soft_skills_data, f, indent=4)
+            
+        # Also sync to markdown format
         with open("profile_data/soft_skills.md", "w") as f:
-            f.write(edited_soft_skills)
+            f.write(build_soft_skills_text(st.session_state.soft_skills_data))
+            
         st.cache_data.clear() 
-        st.success("Soft Skills Updated!")
+        st.success("Soft Skills Updated Successfully!")
 
 # --- TAB 5: AI PROMPTS ---
 with tab5:
@@ -684,8 +741,13 @@ with tab1:
                 with open("profile_data/github_repos.json", "r") as f:
                     github_repos_content = f.read()
                     
-                with open("profile_data/soft_skills.md", "r") as f:
-                    soft_skills_text = f.read()
+                if os.path.exists("profile_data/soft_skills.json"):
+                    with open("profile_data/soft_skills.json", "r") as f:
+                        s_data = json.load(f)
+                    soft_skills_text = build_soft_skills_text(s_data)
+                else:
+                    with open("profile_data/soft_skills.md", "r") as f:
+                        soft_skills_text = f.read()
                     
                 with open("profile_data/prompts.json", "r") as f:
                     loaded_prompts = json.load(f)
@@ -784,8 +846,14 @@ with tab1:
                     st.error("Please enter your API Key in the sidebar.")
                 else:
                     with st.spinner("Regenerating Profile based on feedback..."):
-                        with open("profile_data/soft_skills.md", "r") as f:
-                            current_soft_skills = f.read()
+                        if os.path.exists("profile_data/soft_skills.json"):
+                            with open("profile_data/soft_skills.json", "r") as f:
+                                s_data = json.load(f)
+                            current_soft_skills = build_soft_skills_text(s_data)
+                        else:
+                            with open("profile_data/soft_skills.md", "r") as f:
+                                current_soft_skills = f.read()
+                                
                         with open("profile_data/github_repos.json", "r") as f:
                             github_repos_content = f.read()
                         with open("profile_data/prompts.json", "r") as f:
@@ -855,8 +923,14 @@ with tab1:
                         st.error("Please enter your API Key in the sidebar.")
                     else:
                         with st.spinner("Regenerating Cover Letter..."):
-                            with open("profile_data/soft_skills.md", "r") as f:
-                                current_soft_skills = f.read()
+                            if os.path.exists("profile_data/soft_skills.json"):
+                                with open("profile_data/soft_skills.json", "r") as f:
+                                    s_data = json.load(f)
+                                current_soft_skills = build_soft_skills_text(s_data)
+                            else:
+                                with open("profile_data/soft_skills.md", "r") as f:
+                                    current_soft_skills = f.read()
+                                    
                             with open("profile_data/prompts.json", "r") as f:
                                 loaded_prompts = json.load(f)
                                 
