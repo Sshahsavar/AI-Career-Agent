@@ -10,9 +10,9 @@ from google.genai import types
 from google.genai.errors import ClientError
 from pydantic import BaseModel, Field
 from typing import List
-from dotenv import load_dotenv
 from fpdf import FPDF
 import re
+from dotenv import load_dotenv
 
 # Import python-docx for Word document generation
 try:
@@ -23,7 +23,7 @@ try:
 except ImportError:
     st.error("Please install python-docx: pip install python-docx")
 
-# Load environment variables
+# Load local environment variables from .env file
 load_dotenv()
 
 # --- INITIALIZATION: AUTO-CREATE FILES FOR GITHUB COMPATIBILITY ---
@@ -37,13 +37,13 @@ def initialize_system():
         with open("profile_data/github_repos.json", "w") as f:
             json.dump([], f)
             
-    # 2. Initialize Master Resume JSON
+    # 2. Initialize Master Resume JSON (PII SCRUBBED)
     if not os.path.exists("profile_data/resume_data.json"):
         default_resume = {
-            "header": "# SHAHAB SHAHSAVAR\nToronto, ON | 647-410-5827 | shahab.shvr@gmail.com | linkedin.com/in/shahab-shahsavar/ | github.com/Sshahsavar",
+            "header": "# [YOUR NAME]\n[CITY, STATE] | [PHONE] | [EMAIL] | [LINKEDIN] | [GITHUB]",
             "summary": "Quantitative Financial Analyst...",
-            "education": "**York University | MA in Economics (2025–2026)**\nSelected Coursework: Advanced Econometrics...",
-            "experience": "**Rahman Research Institution | Research Coordinator (2017–2023)**\n* Coordinated research projects...\n* Managed survey data...",
+            "education": "**University Name | Degree (2025–2026)**\nSelected Coursework: ...",
+            "experience": "**Company Name | Job Title (2017–2023)**\n* Coordinated research projects...\n* Managed survey data...",
             "skills": "* **Languages & Databases:** Python, R, SQL\n* **Machine Learning:** Random Forest, LASSO"
         }
         with open("profile_data/resume_data.json", "w") as f:
@@ -52,7 +52,7 @@ def initialize_system():
     # 3. Initialize Soft Skills Markdown
     if not os.path.exists("profile_data/soft_skills.md"):
         with open("profile_data/soft_skills.md", "w") as f:
-            f.write("# Soft Skills & Cognitive Abilities\n\nI am creative because in Copula model research I use different types of visualization to deliver regime changes in the market.")
+            f.write("# Soft Skills & Cognitive Abilities\n\nI am creative because...")
 
     # 4. Initialize Dynamic AI Prompts JSON
     if not os.path.exists("profile_data/prompts.json"):
@@ -117,7 +117,6 @@ def minify_json_for_llm(json_str):
     except:
         return json_str
 
-# Helper to build the Master CV markdown dynamically from the UI textboxes
 def build_master_cv(resume_data):
     return f"""{resume_data.get('header', '')}
 
@@ -230,7 +229,7 @@ class MarkdownResumePDF(FPDF):
             else:
                 self.set_text_color(45, 55, 72)
                 safe_line = sanitize_text(line)
-                if "shahab.shvr@gmail.com" in safe_line or "linkedin.com" in safe_line or "647-410-5827" in safe_line:
+                if "@" in safe_line or "linkedin.com" in safe_line:
                     self.set_font("Helvetica", "", 8.5)
                     self.set_text_color(74, 85, 104) 
                     self.cell(0, 3.8, safe_line, ln=True, align="C")
@@ -262,7 +261,7 @@ def generate_docx(markdown_text, output_path):
             run = p.add_run(line[2:].upper())
             run.bold = True
             run.font.size = Pt(14)
-        elif "shahab.shvr@gmail.com" in line or "linkedin.com" in line:
+        elif "@" in line or "linkedin.com" in line:
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_after = Pt(4)
@@ -321,7 +320,7 @@ def generate_docx(markdown_text, output_path):
 
     doc.save(output_path)
 
-# --- 4. COVER LETTER PDF GENERATOR ---
+# --- 4. COVER LETTER PDF GENERATOR (PII SCRUBBED) ---
 class StructuredCoverLetterPDF(FPDF):
     def __init__(self):
         super().__init__()
@@ -346,17 +345,17 @@ class StructuredCoverLetterPDF(FPDF):
         self.ln(4)
         
         self.set_font("Helvetica", "B", 11)
-        self.cell(0, 5, "Shahab Shahsavar", ln=True)
+        self.cell(0, 5, "[YOUR NAME]", ln=True)
         self.set_font("Helvetica", "", 10)
         self.set_text_color(74, 85, 104)
-        self.cell(0, 5, "Toronto, ON | 647-410-5827 | shahab.shvr@gmail.com", ln=True)
+        self.cell(0, 5, "[CITY, STATE] | [PHONE] | [EMAIL]", ln=True)
         self.ln(6)
         
         self.set_text_color(45, 55, 72)
         today_str = datetime.today().strftime('%B %d, %Y')
         self.cell(0, 5, today_str, ln=True)
 
-# --- 5. COVER LETTER DOCX GENERATOR ---
+# --- 5. COVER LETTER DOCX GENERATOR (PII SCRUBBED) ---
 def generate_cover_letter_docx(body_content, company_name, output_path):
     doc = Document()
     
@@ -389,12 +388,12 @@ def generate_cover_letter_docx(body_content, company_name, output_path):
     
     p_sig = doc.add_paragraph()
     p_sig.paragraph_format.space_after = Pt(4)
-    r_name = p_sig.add_run("Shahab Shahsavar")
+    r_name = p_sig.add_run("[YOUR NAME]")
     r_name.bold = True
     
     p_info = doc.add_paragraph()
     p_info.paragraph_format.space_after = Pt(12)
-    p_info.add_run("Toronto, ON | 647-410-5827 | shahab.shvr@gmail.com")
+    p_info.add_run("[CITY, STATE] | [PHONE] | [EMAIL]")
     
     p_date = doc.add_paragraph()
     today_str = datetime.today().strftime('%B %d, %Y')
@@ -417,8 +416,8 @@ def extract_text_from_url(url):
 
 # CACHED API CALL 1: Core generation.
 @st.cache_data(ttl=3600, show_spinner=False)
-def call_ai_agent(jd_text, master_cv, github_json, soft_skills_text, custom_prompt, feedback=None, use_template=False):
-    client = genai.Client()
+def call_ai_agent(api_key, jd_text, master_cv, github_json, soft_skills_text, custom_prompt, feedback=None, use_template=False):
+    client = genai.Client(api_key=api_key)
     
     mini_jd = minify_text_for_llm(jd_text)
     mini_cv = minify_text_for_llm(master_cv)
@@ -431,7 +430,6 @@ def call_ai_agent(jd_text, master_cv, github_json, soft_skills_text, custom_prom
         mini_git = minify_json_for_llm(github_json)
         project_instruction = "2. SORT PROJECTS: Select EXACTLY top 6 relevant projects from the GitHub JSON."
 
-    # Inject the dynamic project instruction into the user's custom prompt
     final_system_prompt = custom_prompt.replace("{project_instruction}", project_instruction)
 
     prompt = f"""
@@ -471,10 +469,10 @@ SOFT SKILLS:
         else:
             raise e
 
-# CACHED API CALL 2: Cover Letter regeneration. 
+# CACHED API CALL 2: Cover Letter regeneration.
 @st.cache_data(ttl=3600, show_spinner=False)
-def call_cover_letter_regeneration(jd_text, master_cv, soft_skills_text, current_cl, feedback, custom_regen_prompt):
-    client = genai.Client()
+def call_cover_letter_regeneration(api_key, jd_text, master_cv, soft_skills_text, current_cl, feedback, custom_regen_prompt):
+    client = genai.Client(api_key=api_key)
     
     mini_jd = minify_text_for_llm(jd_text)
     mini_cv = minify_text_for_llm(master_cv)
@@ -509,15 +507,38 @@ def call_cover_letter_regeneration(jd_text, master_cv, soft_skills_text, current
 
 # --- 7. STREAMLIT UI & TAB LOGIC ---
 st.set_page_config(page_title="AI Career Agent", layout="wide")
+
+# --- AUTHENTICATION FALLBACK LOGIC ---
+env_api_key = os.getenv("GEMINI_API_KEY")
+secrets_api_key = None
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        secrets_api_key = st.secrets["GEMINI_API_KEY"]
+except Exception:
+    pass
+
+default_key = env_api_key or secrets_api_key or ""
+
+st.sidebar.header("🔑 Authentication")
+user_api_key = st.sidebar.text_input(
+    "Google Gemini API Key", 
+    value=default_key, 
+    type="password", 
+    help="Loaded automatically from .env or Secrets if available."
+)
+
+if not user_api_key:
+    st.sidebar.warning("Please enter your API Key to enable the Agent.")
+
 st.title("💼 Tailored AI Career Agent")
 
-# Define Tabs (Now 5 Tabs)
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 Job Description & Agent", "📝 Edit CV Master", "📂 Edit GitHub Projects", "💡 Soft Skills", "⚙️ AI Prompts"])
+# Define Tabs (TAB 2 = "CV", TAB 3 = "Projects")
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📄 Job Description & Agent", "📝 CV", "📂 Projects", "💡 Soft Skills", "⚙️ AI Prompts"])
 
-# --- TAB 2: CV MASTER ---
+# --- TAB 2: CV ---
 with tab2:
     st.subheader("Edit Master Resume Sections")
-    st.markdown("Edit the core sections of your resume below. The **Projects** section is dynamically injected from the 'GitHub Projects' tab during generation.")
+    st.markdown("Edit the core sections of your resume below. The **Projects** section is dynamically injected from the 'Projects' tab during generation.")
     
     if "resume_data" not in st.session_state:
         with open("profile_data/resume_data.json", "r") as f:
@@ -536,7 +557,7 @@ with tab2:
         st.cache_data.clear() 
         st.success("Master CV Sections Updated!")
 
-# --- TAB 3: PROJECTS JSON ---
+# --- TAB 3: PROJECTS ---
 with tab3:
     st.subheader("Edit GitHub Projects")
     
@@ -597,7 +618,7 @@ with tab4:
 # --- TAB 5: AI PROMPTS ---
 with tab5:
     st.subheader("⚙️ Prompt Engineering")
-    st.write("Adjust the instructions sent to the AI Agent. Note: Keep the `{project_instruction}` tag in the Main Prompt so the app can dynamically toggle templates.")
+    st.write("Adjust the instructions sent to the AI Agent. Note: Keep the `{project_instruction}` tag in the Main Prompt.")
     
     if "prompts_data" not in st.session_state:
         with open("profile_data/prompts.json", "r") as f:
@@ -648,44 +669,46 @@ with tab1:
             job_description = extract_text_from_url(job_url)
 
     if st.button("🚀 Analyze Job & Generate Profile") and job_description:
-        with st.spinner("Analyzing Job & Optimizing Profile (Cached to save API)..."):
-            st.session_state.current_jd = job_description
-            st.session_state.use_template = use_template
-            st.session_state.template_content = template_content
-            
-            # Load Data dynamically
-            with open("profile_data/resume_data.json", "r") as f:
-                r_data = json.load(f)
-            master_cv_content = build_master_cv(r_data)
-            
-            with open("profile_data/github_repos.json", "r") as f:
-                github_repos_content = f.read()
+        if not user_api_key:
+            st.error("Please enter your Google Gemini API Key in the sidebar to proceed.")
+        else:
+            with st.spinner("Analyzing Job & Optimizing Profile (Cached to save API)..."):
+                st.session_state.current_jd = job_description
+                st.session_state.use_template = use_template
+                st.session_state.template_content = template_content
                 
-            with open("profile_data/soft_skills.md", "r") as f:
-                soft_skills_text = f.read()
+                with open("profile_data/resume_data.json", "r") as f:
+                    r_data = json.load(f)
+                master_cv_content = build_master_cv(r_data)
                 
-            with open("profile_data/prompts.json", "r") as f:
-                loaded_prompts = json.load(f)
-            
-            st.session_state.agent_results = call_ai_agent(
-                jd_text=job_description, 
-                master_cv=template_content if use_template else master_cv_content, 
-                github_json=github_repos_content, 
-                soft_skills_text=soft_skills_text,
-                custom_prompt=loaded_prompts.get('main_prompt', ''),
-                use_template=use_template
-            )
-            
-            st.session_state.is_approved = False
-            st.session_state.show_regeneration = False
-            st.session_state.show_cl_regeneration = False
-            st.rerun()
+                with open("profile_data/github_repos.json", "r") as f:
+                    github_repos_content = f.read()
+                    
+                with open("profile_data/soft_skills.md", "r") as f:
+                    soft_skills_text = f.read()
+                    
+                with open("profile_data/prompts.json", "r") as f:
+                    loaded_prompts = json.load(f)
+                
+                st.session_state.agent_results = call_ai_agent(
+                    api_key=user_api_key,
+                    jd_text=job_description, 
+                    master_cv=template_content if use_template else master_cv_content, 
+                    github_json=github_repos_content, 
+                    soft_skills_text=soft_skills_text,
+                    custom_prompt=loaded_prompts.get('main_prompt', ''),
+                    use_template=use_template
+                )
+                
+                st.session_state.is_approved = False
+                st.session_state.show_regeneration = False
+                st.session_state.show_cl_regeneration = False
+                st.rerun()
 
     if st.session_state.agent_results:
         res = st.session_state.agent_results
         active_use_template = st.session_state.get('use_template', False)
         
-        # Load CV base dynamically for Preview
         with open("profile_data/resume_data.json", "r") as f:
             cv_base = st.session_state.get('template_content', "") if active_use_template else build_master_cv(json.load(f))
         
@@ -719,7 +742,7 @@ with tab1:
                     bullets_str = "\n".join([f"* {b}" for b in match['bullets']])
                     primary_tech = match.get('tech_stack', [''])[0] if match.get('tech_stack') else ""
                     tech_str = f" ({primary_tech})" if primary_tech else ""
-                    repo_url = match.get('url', 'github.com/Sshahsavar')
+                    repo_url = match.get('url', '[YOUR GITHUB URL]')
                     block = f"**{match['name']}{tech_str} | {repo_url}**\n{bullets_str}\n"
                     project_markdown_blocks.append(block)
             
@@ -757,26 +780,30 @@ with tab1:
             st.warning("You selected Regenerate.")
             regen_feedback = st.text_area("What is the problem? (e.g., 'Make the summary shorter', 'Swap project X with Y')")
             if st.button("Submit Feedback & Regenerate"):
-                with st.spinner("Regenerating Profile based on feedback..."):
-                    with open("profile_data/soft_skills.md", "r") as f:
-                        current_soft_skills = f.read()
-                    with open("profile_data/github_repos.json", "r") as f:
-                        github_repos_content = f.read()
-                    with open("profile_data/prompts.json", "r") as f:
-                        loaded_prompts = json.load(f)
-                        
-                    st.session_state.agent_results = call_ai_agent(
-                        jd_text=st.session_state.current_jd, 
-                        master_cv=cv_base, 
-                        github_json=github_repos_content, 
-                        soft_skills_text=current_soft_skills,
-                        custom_prompt=loaded_prompts.get('main_prompt', ''),
-                        feedback=regen_feedback,
-                        use_template=active_use_template
-                    )
-                    st.session_state.show_regeneration = False
-                    st.session_state.is_approved = False
-                    st.rerun()
+                if not user_api_key:
+                    st.error("Please enter your API Key in the sidebar.")
+                else:
+                    with st.spinner("Regenerating Profile based on feedback..."):
+                        with open("profile_data/soft_skills.md", "r") as f:
+                            current_soft_skills = f.read()
+                        with open("profile_data/github_repos.json", "r") as f:
+                            github_repos_content = f.read()
+                        with open("profile_data/prompts.json", "r") as f:
+                            loaded_prompts = json.load(f)
+                            
+                        st.session_state.agent_results = call_ai_agent(
+                            api_key=user_api_key,
+                            jd_text=st.session_state.current_jd, 
+                            master_cv=cv_base, 
+                            github_json=github_repos_content, 
+                            soft_skills_text=current_soft_skills,
+                            custom_prompt=loaded_prompts.get('main_prompt', ''),
+                            feedback=regen_feedback,
+                            use_template=active_use_template
+                        )
+                        st.session_state.show_regeneration = False
+                        st.session_state.is_approved = False
+                        st.rerun()
 
         if st.session_state.is_approved:
             st.success("All sections approved! Choose an export format below:")
@@ -824,23 +851,27 @@ with tab1:
             if st.session_state.get("show_cl_regeneration", False):
                 cl_feedback = st.text_area("What is the problem with the cover letter? (e.g., 'Make paragraph 2 more direct', 'Change tone')")
                 if st.button("Submit Cover Letter Feedback & Regenerate"):
-                    with st.spinner("Regenerating Cover Letter..."):
-                        with open("profile_data/soft_skills.md", "r") as f:
-                            current_soft_skills = f.read()
-                        with open("profile_data/prompts.json", "r") as f:
-                            loaded_prompts = json.load(f)
-                            
-                        new_cl = call_cover_letter_regeneration(
-                            jd_text=st.session_state.current_jd,
-                            master_cv=cv_base,
-                            soft_skills_text=current_soft_skills,
-                            current_cl=res['cover_letter_body'],
-                            feedback=cl_feedback,
-                            custom_regen_prompt=loaded_prompts.get('regen_prompt', '')
-                        )
-                        st.session_state.agent_results['cover_letter_body'] = new_cl
-                        st.session_state.show_cl_regeneration = False
-                        st.rerun()
+                    if not user_api_key:
+                        st.error("Please enter your API Key in the sidebar.")
+                    else:
+                        with st.spinner("Regenerating Cover Letter..."):
+                            with open("profile_data/soft_skills.md", "r") as f:
+                                current_soft_skills = f.read()
+                            with open("profile_data/prompts.json", "r") as f:
+                                loaded_prompts = json.load(f)
+                                
+                            new_cl = call_cover_letter_regeneration(
+                                api_key=user_api_key,
+                                jd_text=st.session_state.current_jd,
+                                master_cv=cv_base,
+                                soft_skills_text=current_soft_skills,
+                                current_cl=res['cover_letter_body'],
+                                feedback=cl_feedback,
+                                custom_regen_prompt=loaded_prompts.get('regen_prompt', '')
+                            )
+                            st.session_state.agent_results['cover_letter_body'] = new_cl
+                            st.session_state.show_cl_regeneration = False
+                            st.rerun()
 
             cl_dl_col1, cl_dl_col2 = st.columns(2)
             with cl_dl_col1:
