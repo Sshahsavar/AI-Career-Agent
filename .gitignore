@@ -1,0 +1,27 @@
+# Sensitive keys & local env files
+.env
+.secrets.toml
+.streamlit/secrets.toml
+
+# Generated PDF / DOCX outputs & saved templates
+output/*
+!output/.gitkeep
+templates/*
+!templates/.gitkeep
+
+# Python cache & build files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Operating system junk
+.DS_Store
+Thumbs.db
